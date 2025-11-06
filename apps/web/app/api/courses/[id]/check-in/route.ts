@@ -37,9 +37,8 @@ export async function POST(
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    // For testing: Use current hour instead of date (resets every hour)
-    // TODO: Change back to date format for production
-    const today = new Date().toISOString().split('T')[0] + '-' + new Date().getHours();
+    // Use date format: YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
 
     // Check if user already checked in today
     const existingCheckIn = await prisma.dailyCheckIn.findUnique({
@@ -54,8 +53,10 @@ export async function POST(
 
     if (existingCheckIn) {
       return NextResponse.json({ 
+        success: true,
         message: "Already checked in today!",
-        checkIn: existingCheckIn
+        checkIn: existingCheckIn,
+        alreadyCheckedIn: true
       });
     }
 
@@ -106,9 +107,8 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // For testing: Use current hour instead of date (resets every hour)
-    // TODO: Change back to date format for production
-    const today = new Date().toISOString().split('T')[0] + '-' + new Date().getHours();
+    // Use date format: YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
 
     // Check if user has checked in today
     const checkIn = await prisma.dailyCheckIn.findUnique({

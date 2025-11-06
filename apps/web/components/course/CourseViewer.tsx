@@ -1,7 +1,7 @@
 // apps/web/components/course/CourseViewer.tsx
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -48,27 +48,79 @@ export default function CourseViewer({
     return { total, completed, percent: total ? Math.round((completed / total) * 100) : 0 };
   }, [course.sections, done]);
 
-  // Check if user has checked in today
+  // Ref to track last checked date (persists across renders)
+  const lastCheckedDateRef = useRef<string | null>(null);
+
+  // Check if user has checked in today and auto-open modal if not
   useEffect(() => {
-    const checkDailyCheckIn = async () => {
+    let midnightTimeoutId: NodeJS.Timeout | null = null;
+    let dateCheckIntervalId: NodeJS.Timeout | null = null;
+
+    const getTodayDateString = () => {
+      return new Date().toISOString().split('T')[0];
+    };
+
+    const checkDailyCheckIn = async (forceCheck = false) => {
+      const today = getTodayDateString();
+      
+      // Optimize: Only make API call if date changed or forced
+      // This prevents unnecessary API calls when date hasn't changed
+      if (!forceCheck && lastCheckedDateRef.current === today && hasCheckedInToday) {
+        return; // Already checked today and date hasn't changed
+      }
+
       try {
         const response = await fetch(`/api/courses/${course.id}/check-in`);
         if (response.ok) {
           const data = await response.json();
-          setHasCheckedInToday(data.hasCheckedInToday);
+          const checkedIn = data.hasCheckedInToday || false;
+          setHasCheckedInToday(checkedIn);
+          lastCheckedDateRef.current = today;
           
-          // For testing: Don't auto-show modal, use the "Test Check-in" button instead
-          // if (!data.hasCheckedInToday) {
-          //   setCheckInOpen(true);
-          // }
+          // Automatically open modal if user hasn't checked in today
+          if (!checkedIn) {
+            setCheckInOpen(true);
+          }
+        } else {
+          // If check fails, assume not checked in
+          setHasCheckedInToday(false);
         }
       } catch (error) {
         console.error("Error checking daily check-in:", error);
+        setHasCheckedInToday(false);
       }
     };
 
-    checkDailyCheckIn();
-  }, [course.id]);
+    // Check immediately on mount
+    checkDailyCheckIn(true);
+
+    // Check date change every 1 minute (lightweight client-side check)
+    // Only makes API call if date actually changed
+    dateCheckIntervalId = setInterval(() => {
+      const today = getTodayDateString();
+      if (lastCheckedDateRef.current && lastCheckedDateRef.current !== today) {
+        // Date changed - need to check again
+        checkDailyCheckIn(true);
+      }
+    }, 60 * 1000); // Check every minute (lightweight, no API call)
+
+    // Calculate time until midnight to check immediately when new day starts
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = midnight.getTime() - now.getTime();
+
+    // Set timeout to check at midnight (optimization to check right when day changes)
+    midnightTimeoutId = setTimeout(() => {
+      checkDailyCheckIn(true);
+    }, msUntilMidnight);
+
+    // Cleanup on unmount
+    return () => {
+      if (dateCheckIntervalId) clearInterval(dateCheckIntervalId);
+      if (midnightTimeoutId) clearTimeout(midnightTimeoutId);
+    };
+  }, [course.id, hasCheckedInToday]);
 
   const handleCheckIn = async (mood: string, notes: string) => {
     try {
@@ -78,13 +130,28 @@ export default function CourseViewer({
         body: JSON.stringify({ mood, notes }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Check-in was successful (new or already existed)
         setHasCheckedInToday(true);
+        // Update ref to prevent unnecessary API calls
+        lastCheckedDateRef.current = new Date().toISOString().split('T')[0];
+        
+        // Show appropriate message
+        if (data.alreadyCheckedIn) {
+          // User already checked in - this is fine, just update state
+          console.log(data.message);
+        }
       } else {
-        console.error("Failed to check in");
+        // API returned an error
+        throw new Error(data.error || data.message || "Failed to check in");
       }
     } catch (error) {
       console.error("Error checking in:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to check in. Please try again.";
+      alert(errorMessage);
+      throw error; // Re-throw so modal can handle it
     }
   };
 
@@ -143,20 +210,12 @@ export default function CourseViewer({
               )}
             </div>
             <div className="flex items-center gap-2">
-              {/* Testing: Reset check-in button */}
-              <Button
-                variant="outline"
-                onClick={() => setCheckInOpen(true)}
-                className="text-slate-700 hover:bg-slate-100"
-                size="sm"
-              >
-                Test Check-in
-              </Button>
               <Button
                 variant="ghost"
                 onClick={() => setSettingsOpen(true)}
                 className="text-slate-700 hover:bg-slate-100"
                 size="sm"
+                id="#onboarding"
               >
                 <Settings className="w-4 h-4" />
               </Button>
