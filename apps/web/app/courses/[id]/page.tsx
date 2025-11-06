@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CourseViewer from "@/components/course/CourseViewer";
+import MobileWarning from "@/components/course/MobileWarning";
 
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -38,6 +39,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <MobileWarning />
       <CourseViewer
         course={{
           id: course.id,

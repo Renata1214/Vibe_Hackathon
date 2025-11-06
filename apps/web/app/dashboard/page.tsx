@@ -71,9 +71,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
-      
-      <main className="mx-auto max-w-7xl p-5 sm:p-8 space-y-6 pt-20">
+      <main className="mx-auto max-w-7xl p-4 sm:p-5 md:p-8 space-y-4 sm:space-y-6 pt-16 sm:pt-20">
         <TopBar
           appTitle="Pluto"
           breadcrumb="Dashboard"
@@ -81,29 +79,29 @@ export default async function DashboardPage() {
         />
 
         {/* KPI cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
-            <div className="text-sm text-slate-500 font-medium">Total Courses</div>
-            <div className="text-3xl font-bold mt-2 text-slate-900">{totalCourses}</div>
-            <div className="text-sm text-slate-500 mt-2">
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 sm:p-6 shadow-sm">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium">Total Courses</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-slate-900">{totalCourses}</div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-2">
               {Math.max(totalCourses - completedCourses, 0)} in progress
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
-            <div className="text-sm text-slate-500 font-medium">Completed</div>
-            <div className="text-3xl font-bold mt-2 text-green-600">{completedCourses}</div>
-            <div className="text-sm text-slate-500 mt-2">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 sm:p-6 shadow-sm">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium">Completed</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-green-600">{completedCourses}</div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-2">
               {totalCourses ? Math.round((completedCourses / totalCourses) * 100) : 0}% completion rate
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-6 shadow-sm">
-            <div className="text-sm text-slate-500 font-medium">Total Watch Time</div>
-            <div className="text-3xl font-bold mt-2 text-blue-600">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 sm:p-6 shadow-sm sm:col-span-2 md:col-span-1">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium">Total Watch Time</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-blue-600">
               {Math.floor(totalWatchTimeS / 3600)}h {Math.round((totalWatchTimeS % 3600) / 60)}m
             </div>
-            <div className="text-sm text-slate-500 mt-2">Across all courses</div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-2">Across all courses</div>
           </div>
         </section>
 

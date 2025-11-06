@@ -78,15 +78,26 @@ export default function DailyCheckInModal({
       onClose();
     } catch (error) {
       console.error("Error checking in:", error);
+      // Error is already handled in parent component (alert shown)
+      // Don't close modal on error so user can retry
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     // Check in with no mood/notes
-    onCheckIn("", "");
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onCheckIn("", "");
+      onClose();
+    } catch (error) {
+      console.error("Error checking in:", error);
+      // Error is already handled in parent component (alert shown)
+      // Don't close modal on error so user can retry
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useRequireAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input";
 import { Loader2, LogOut, BookOpen } from "lucide-react";
+import { isValidYouTubePlaylistUrl } from "@/lib/youtube";
 
 function HomeAfterLoginContent() {
   const { user, isLoading } = useRequireAuth();
@@ -32,6 +33,43 @@ function HomeAfterLoginContent() {
     onCreate();
   };
 
+  const onCreate = useCallback(async () => {
+    if (!url.trim()) return;
+    setBusy(true);
+    setErr(null);
+    
+    // Client-side validation: Check if URL is a valid YouTube playlist
+    const validation = isValidYouTubePlaylistUrl(url.trim());
+    if (!validation.valid) {
+      setErr(validation.error || "Invalid YouTube playlist URL");
+      setBusy(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/courses/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playlistUrl: url }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        // Display the error message from the API (which includes playlist validation errors)
+        throw new Error(json?.error || "Failed to create course");
+      }
+      
+      // Clear URL from browser history
+      window.history.replaceState({}, '', '/home');
+      router.push(`/courses/${json.courseId}`);
+    } catch (e: unknown) {
+      // Show user-friendly error message
+      const errorMessage = e instanceof Error ? e.message : "Failed to create course. Please try again.";
+      setErr(errorMessage);
+    } finally {
+      setBusy(false);
+    }
+  }, [url, router]);
+
   // Handle URL from query params after signin
   useEffect(() => {
     if (!isLoading && user) {
@@ -45,30 +83,7 @@ function HomeAfterLoginContent() {
         }, 100);
       }
     }
-  }, [isLoading, user, searchParams]);
-
-  async function onCreate() {
-    if (!url.trim()) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/courses/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlistUrl: url }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Failed to create course");
-      
-      // Clear URL from browser history
-      window.history.replaceState({}, '', '/home');
-      router.push(`/courses/${json.courseId}`);
-    } catch (e: any) {
-      setErr(e.message || "Failed");
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [isLoading, user, searchParams, onCreate]);
 
   return (
     <ProtectedRoute>
